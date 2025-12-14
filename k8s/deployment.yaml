@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nestjsops
+  namespace: nestjsops
+  labels:
+    app: nestjsops
+spec:
+  replicas: 1 # Scale as needed
+  selector:
+    matchLabels:
+      app: nestjsops
+  template:
+    metadata:
+      labels:
+        app: nestjsops
+    spec:
+      containers:
+        - name: nestjsops
+          image: 123456789012.dkr.ecr.us-west-2.amazonaws.com/nestjsops:latest # Replace with your ECR URL; tag overridden in CI
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - secretRef:
+                name: simple-backend-db-secret
+          livenessProbe:
+            httpGet:
+              path: /users # Use a real endpoint
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /users
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
