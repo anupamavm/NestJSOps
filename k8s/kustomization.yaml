@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - secret-db.yaml
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: 123456789012.dkr.ecr.us-west-2.amazonaws.com/simple-backend # Your ECR URL
+    newTag: latest # Overridden in CI
