@@ -16,6 +16,11 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
+  @Post('logout')
+    logout(@Req() req: any) {
+    return this.authService.logout(req.user.userId);
+    }
+
   // 🔐 PROTECTED ROUTE
   @UseGuards(JwtAuthGuard)
   @Get('profile')

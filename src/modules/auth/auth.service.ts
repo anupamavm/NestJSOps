@@ -1,52 +1,61 @@
-import { Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../../prisma/prisma.service';
 
-type User = {
-  id: number;
-  email: string;
-  password: string;
-};
 
 @Injectable()
 export class AuthService {
-  private users: User[] = [];
-
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+  ) {}
 
   async register(email: string, password: string) {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
-    const user: User = {
-      id: Date.now(),
-      email,
-      password: hashedPassword,
-    };
+    await this.prisma.user.create({
+      data: {
+        email,
+        password: hashed,
+      },
+    });
 
-    this.users.push(user);
-
-    return {
-      message: 'User registered successfully',
-    };
+    return { message: 'User created' };
   }
 
   async login(email: string, password: string) {
-    const user = this.users.find(u => u.email === email);
+    const user = await this.prisma.user.findUnique({ where: { email } });
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
-    }
+    const accessToken = this.jwt.sign(
+      { sub: user.id, email: user.email },
+      { expiresIn: '15m' },
+    );
 
-    const payload = { userId: user.id, email: user.email };
+    const refreshToken = this.jwt.sign(
+      { sub: user.id },
+      { expiresIn: '7d' },
+    );
 
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  async logout(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: null },
+    });
+
+    return { message: 'Logged out' };
   }
 }
