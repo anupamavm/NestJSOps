@@ -58,4 +58,45 @@ export class AuthService {
 
     return { message: 'Logged out' };
   }
+
+  async refresh(userId: string, refreshToken: string) {
+  const user = await this.prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user || !user.refreshToken) {
+    throw new Error('Access denied');
+  }
+
+  const isValid = await bcrypt.compare(
+    refreshToken,
+    user.refreshToken,
+  );
+
+  if (!isValid) {
+    throw new Error('Invalid refresh token');
+  }
+
+  const payload = { sub: user.id, email: user.email };
+
+  const newAccessToken = this.jwt.sign(payload, {
+    expiresIn: '15m',
+  });
+
+  const newRefreshToken = this.jwt.sign(payload, {
+    expiresIn: '7d',
+  });
+
+  const hashed = await bcrypt.hash(newRefreshToken, 10);
+
+  await this.prisma.user.update({
+    where: { id: user.id },
+    data: { refreshToken: hashed },
+  });
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+  };
+}
 }

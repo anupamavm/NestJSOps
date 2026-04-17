@@ -21,6 +21,11 @@ export class AuthController {
     return this.authService.logout(req.user.userId);
     }
 
+  @Post('refresh')
+  refresh(@Body() body: any) {
+    return this.authService.refresh(body.userId, body.refreshToken);
+  }
+
   // 🔐 PROTECTED ROUTE
   @UseGuards(JwtAuthGuard)
   @Get('profile')
