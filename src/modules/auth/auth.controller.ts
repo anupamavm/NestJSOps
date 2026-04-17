@@ -16,14 +16,15 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
-    logout(@Req() req: any) {
+  logout(@Req() req) {
     return this.authService.logout(req.user.userId);
-    }
+  }
 
   @Post('refresh')
   refresh(@Body() body: any) {
-    return this.authService.refresh( body.refreshToken);
+    return this.authService.refresh(body.refreshToken);
   }
 
   // 🔐 PROTECTED ROUTE
