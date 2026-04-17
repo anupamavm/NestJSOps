@@ -23,7 +23,7 @@ export class AuthController {
 
   @Post('refresh')
   refresh(@Body() body: any) {
-    return this.authService.refresh(body.userId, body.refreshToken);
+    return this.authService.refresh( body.refreshToken);
   }
 
   // 🔐 PROTECTED ROUTE
